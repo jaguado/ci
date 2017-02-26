@@ -6,10 +6,11 @@ using System.Security.AccessControl;
 using Microsoft.Win32;
 using Microsoft.Web.Administration;
 using System.Reflection;
+using System.Linq;
 
-namespace JAM.IIS.Test
+namespace JAM.IIS.Manager
 {
-    public static class IISHelper
+    public static class Helper
     {
         #region User Account Management
         /// <summary>
@@ -237,12 +238,7 @@ namespace JAM.IIS.Test
 
         public static ServerManager GetServerManager(string server)
         {
-            var res = new ServerManager();
-            using (var mgr = ServerManager.OpenRemote(server))
-            {
-                mgr.MapProperties(res);
-            }
-            return res;
+            return ServerManager.OpenRemote(server);
         }
 
         public static bool CloneAppPool(string originPoolName, string originServer, string destinationPoolName, string destinationServer)
@@ -275,13 +271,12 @@ namespace JAM.IIS.Test
                 //Write on destination
                 using (var mgrDestination = ServerManager.OpenRemote(destinationServer))
                 {
-                   // var newWebSite = mgrDestination.Sites.Add(destinationWebSiteName, originWebSite.RawAttributes("physicalPath").ToString(), int.Parse(originWebSite.Attributes[""].ToString()));
+                    mgrDestination.Sites.Add(originWebSite.Name, originWebSite.Applications["/"].VirtualDirectories["/"].PhysicalPath, originWebSite.Bindings[0].EndPoint.Port);
                     mgrDestination.CommitChanges();
                 }
             }
             return true;
         }
-
 
         /// <summary>
         /// 
@@ -388,19 +383,40 @@ namespace JAM.IIS.Test
             return true;
         }
 
-        public static void RemoveApplicationPool(string applicationPoolName)
+        public static void RemoveApplicationPool(string applicationPoolName, string remoteServer = "localhost", ServerManager server=null)
         {
-            using (ServerManager mgr = new ServerManager())
+            ServerManager mgr = server;
+            if (server == null)
+                mgr = new ServerManager(remoteServer);
+  
+            var pool = mgr.ApplicationPools[applicationPoolName];
+            if (pool != null)
             {
-                var pool = mgr.ApplicationPools[applicationPoolName];
-
-                if (pool != null)
-                {
+                if(pool.State==ObjectState.Started)
                     pool.Stop();
 
-                    mgr.ApplicationPools.Remove(pool);
-                    mgr.CommitChanges();
-                }
+                mgr.ApplicationPools.Remove(pool);
+                mgr.CommitChanges();
+            }
+        }
+
+        public static void RemoveSite(string siteName, string remoteServer = "localhost", ServerManager server = null)
+        {
+            
+            ServerManager mgr = server;
+            if (server == null)
+                mgr = new ServerManager(remoteServer);
+
+            var pool = mgr.Sites[siteName];
+            if (pool != null)
+            {
+                var powerOn = pool.State == ObjectState.Started;
+                if (powerOn)
+                    pool.Stop();
+                mgr.Sites.Remove(pool);
+                if (powerOn)
+                    pool.Start();
+                mgr.CommitChanges();
             }
         }
 
@@ -479,9 +495,9 @@ namespace JAM.IIS.Test
         /// <param name="siteName"></param>
         /// <param name="physicalPathRoot"></param>
         /// <returns></returns>
-        public static bool RemoveApplication(string siteName, string path)
+        public static bool RemoveApplication(string siteName, string path, string remoteServer="localhost")
         {
-            using (ServerManager mgr = new ServerManager())
+            using (ServerManager mgr = new ServerManager(remoteServer))
             {
                 Site site = mgr.Sites[siteName];
                 if (site != null)
@@ -837,7 +853,81 @@ namespace JAM.IIS.Test
             newApp.Recycling.PeriodicRestart.Time = origin.Recycling.PeriodicRestart.Time;
             return newApp;
         }
+        public static SiteCollection CreateSiteFrom(SiteCollection origin, ServerManager destination, string newSiteName)
+        {
+            return null;            
+        }
+        #endregion
 
+        #region IIS
+        public static void CloneIIS(string source, string destination, bool cloneAppPools = true, bool cloneSites = true)
+        {
+            var info = Helper.GetServerManager(source);
+            Console.WriteLine("Cloning from " + source + " to " + destination);
+            Console.WriteLine("");
+            if (cloneAppPools)
+            {
+                Console.WriteLine("Cloning Application Pools");
+                foreach (var appPool in info.ApplicationPools.ToList())
+                {
+                    Helper.CloneAppPool(appPool.Name, source, appPool.Name, destination);
+                    Console.WriteLine(appPool.Name + " cloned.");
+                }
+            }
+            Console.WriteLine("");
+            if (cloneSites)
+            {
+                Console.WriteLine("Listing Sites:");
+                foreach (var site in info.Sites.ToList())
+                {
+                    Helper.CloneWebSite(site.Name, source, site.Name, destination);
+                    Console.WriteLine(site.Name + " cloned.");
+                }
+            }
+        }
+        public static void CleanIIS(string server, bool cleanAppPools = true, bool cleanSites = true)
+        {
+            var info = Helper.GetServerManager(server);
+            Console.WriteLine("");
+            if (cleanAppPools)
+            {
+                Console.WriteLine("Deleting Application Pools");
+                foreach (var appPool in info.ApplicationPools.ToList())
+                {
+                    Helper.RemoveApplicationPool(appPool.Name, server, info);
+                    Console.WriteLine(appPool.Name + " deleted.");
+                }
+            }
+            Console.WriteLine("");
+            if (cleanSites)
+            {
+                Console.WriteLine("Deleting Sites:");
+                foreach (var site in info.Sites.ToList())
+                {
+                    Helper.RemoveSite(site.Name, server, info);
+                    Console.WriteLine(site.Name + " deleted.");
+                }
+            }
+        }
+        public static void ListInformation(string server, bool listAppPools = true, bool listSites = true)
+        {
+            var info = Manager.Helper.GetServerManager(server);
+            Console.WriteLine(server + " Information");
+            Console.WriteLine("");
+            if (listAppPools)
+            {
+                Console.WriteLine("Listing Application Pools:");
+                foreach (var appPool in info.ApplicationPools.ToList())
+                    Console.WriteLine(appPool.Name);
+            }
+            Console.WriteLine("");
+            if (listSites)
+            {
+                Console.WriteLine("Listing Sites:");
+                foreach (var sites in info.Sites.ToList())
+                    Console.WriteLine(sites.Name);
+            }
+        }
         #endregion
     }
 }

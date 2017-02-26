@@ -7,26 +7,20 @@ namespace JAM.IIS.Test
     {
         static void Main(string[] args)
         {
+            //using (var imp = new ImpersonateHelper("jaguado", "vacas.2014", "cuprum.cl"))
+            //{   
+            var host = "192.168.83.240";
+            //Manager.Helper.CleanIIS("localhost");
+            //Manager.Helper.CloneIIS("192.168.83.240", "localhost");
+            Manager.Helper.ListInformation(host);
+            Environment.Exit(0);
+            //}
+            //result = IISHelper.CloneAppPool("Default", "localhost", "DefaultCloned", "192.168.83.240");
+            //var result = IISHelper.CloneWebSite("Default Web Site", "localhost", "Default Web Site 2", "localhost");
             //var appPoolCreate = IISHelper.CreateOrModifyApplicationPool("Prueba2", Microsoft.Web.Administration.ProcessModelIdentityType.LocalSystem, "", "", "v4.0", true, false, Microsoft.Web.Administration.ManagedPipelineMode.Integrated, 9000, System.TimeSpan.MinValue, 0, System.TimeSpan.MinValue, 9);
-            var host = "localhost";
-            var info = IISHelper.GetServerManager(host);
-            Console.WriteLine(host + " Information");
-            Console.WriteLine("");
-            Console.WriteLine("Listing Application Pools:");
-            foreach(var appPool in info.ApplicationPools)
-            {
-                Console.WriteLine(appPool.Name);
-            }
-            Console.WriteLine("");
-            Console.WriteLine("Listing Sites:");
-            foreach (var sites in info.Sites)
-            {
-                Console.WriteLine(sites.Name);
-            }
-
-            //var result = IISHelper.CloneAppPool("DefaultAppPool", "localhost", "DefaultAppPoolCloned", "localhost");
-            var result = IISHelper.CloneWebSite("Default Web Site", "localhost", "Default Web Site 2", "localhost");
             Console.ReadKey();
         }
+
+       
     }
 }
