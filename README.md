@@ -26,10 +26,16 @@ How to create a Docker server on Ubuntu VirtualBox VM
 3. Install Ubuntu
 
 ### Common Steps
-4. Install Docker -> https://docs.docker.com/installation/ubuntulinux/#for-trusty-14-04  
+4. Install Docker -> https://docs.docker.com/engine/installation/linux/ubuntu/#install-using-the-repository
+
+>sudo apt-get remove docker docker-engine  
 >sudo apt-get update  
->sudo apt-get install -y --no-install-recommends linux-image-extra-$(uname -r) linux-image-extra-virtual  
->sudo apt-get -y install docker-engine  
+>sudo apt-get install linux-image-extra-$(uname -r) linux-image-extra-virtual
+>sudo apt-get install apt-transport-https ca-certificates curl software-properties-common  
+>curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -  
+>sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu  $(lsb_release -cs) stable"  
+>sudo apt-get update  
+>sudo apt-get install docker-ce  
 >sudo docker run hello-world  
 >sudo docker -d  
 
